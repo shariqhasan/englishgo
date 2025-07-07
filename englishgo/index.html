@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EnglishGo - Learn Pronunciation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #111;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      color: red;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+    }
+    .search-container {
+      background: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .search-container input[type="text"] {
+      padding: 10px;
+      width: 50%;
+      font-size: 16px;
+    }
+    .search-container select {
+      padding: 10px;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    .search-container button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      font-size: 16px;
+      background: red;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .controls {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .controls button {
+      margin: 5px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #player {
+      display: block;
+      margin: 20px auto;
+      max-width: 720px;
+      width: 100%;
+      height: 405px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>English<span style="color:white">Go</span></h1>
+    <nav>
+      <a href="#" onclick="openWordBank()">Word Bank</a>
+      <a href="flashcards.html" target="_blank">Flashcards</a>
+      <a href="donate.html">Donate</a>
+    </nav>
+  </header>
+
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Enter topic (e.g. power)">
+    <select id="categorySelect">
+      <option value="pronunciation American British English">Pronunciation</option>
+      <option value="Mini English Stories American British">Mini English Stories</option>
+      <option value="English News US UK">News Feed</option>
+      <option value="TED Talks English US UK">TED English</option>
+      <option value="IELTS tips UK US English">IELTS</option>
+      <option value="English Grammar British American">Grammar</option>
+      <option value="Health tips English US UK">Health</option>
+      <option value="Science US UK">Science</option>
+      <option value="Culture US UK English">Culture</option>
+      <option value="Politics UK US">Politics</option>
+      <option value="Lifestyle UK US">Lifestyle</option>
+      <option value="Kids English UK US">Kids</option>
+      <option value="History in English UK US">History</option>
+      <option value="English Songs UK US">Songs</option>
+      <option value="Entertainment UK US">Entertainment</option>
+      <option value="Business English US UK">Business</option>
+      <option value="English Podcasts UK US">Podcasts</option>
+      <option value="Technology English US UK">Technology</option>
+      <option value="Psychology English UK US">Psychology</option>
+      <option value="Travel vlog US UK English">Travel</option>
+    </select>
+    <button onclick="searchVideos()">Say it!</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="replayVideo()">⟲ Replay</button>
+    <button onclick="playNext()">⏭ Next</button>
+    <button onclick="changeSpeed()">Speed: <span id="speedLabel">Normal</span></button>
+  </div>
+
+  <iframe id="player" allowfullscreen allow="autoplay"></iframe>
+
+  <script>
+    const API_KEY = 'AIzaSyDvFunhAdDrVZyTsl6m0Vj5kpdlCb_qHL8'; // Replace with your actual key
+    let videos = [];
+    let currentIndex = 0;
+    let currentSpeed = 1;
+    let currentWord = '';
+
+    function searchVideos() {
+      const query = document.getElementById('searchInput').value.trim();
+      const category = document.getElementById('categorySelect').value;
+      if (!query) return;
+      currentWord = query;
+
+      const fullQuery = `${query} ${category}`;
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&regionCode=US&maxResults=10&q=${encodeURIComponent(fullQuery)}&key=${API_KEY}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          videos = data.items
+            .filter(item => item.id.videoId)
+            .map(item => item.id.videoId);
+          currentIndex = 0;
+          if (videos.length > 0) {
+            playVideo(videos[currentIndex]);
+          } else {
+            alert('No results found.');
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching videos:', err);
+          alert('Failed to load videos. Try again.');
+        });
+    }
+
+    function playVideo(videoId) {
+      const player = document.getElementById('player');
+      player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&rel=0&start=0&enablejsapi=1&modestbranding=1`;
+    }
+
+    function replayVideo() {
+      if (videos.length === 0) return;
+      playVideo(videos[currentIndex]);
+    }
+
+    function playNext() {
+      if (videos.length === 0) return;
+      currentIndex = (currentIndex + 1) % videos.length;
+      playVideo(videos[currentIndex]);
+    }
+
+    function changeSpeed() {
+      currentSpeed = currentSpeed === 1 ? 1.5 : currentSpeed === 1.5 ? 0.75 : 1;
+      document.getElementById('speedLabel').textContent = currentSpeed === 1 ? 'Normal' : currentSpeed + 'x';
+      const iframe = document.getElementById('player');
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'setPlaybackRate',
+        args: [currentSpeed]
+      }), '*');
+    }
+
+    function openWordBank() {
+      const word = currentWord || document.getElementById('searchInput').value.trim();
+      if (!word) {
+        alert('Please enter or search a word first.');
+        return;
+      }
+      window.open(`wordbank.html?word=${encodeURIComponent(word)}`, '_blank');
+    }
+
+    document.getElementById('searchInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        searchVideos();
+      }
+    });
+  </script>
+  <!-- 🔗 Support Buttons -->
+<div class="buttons" style="text-align: center; margin: 40px 0;">
+  <a href="https://play.google.com/store/apps/details?id=com.example.app" target="_blank">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" style="height: 60px; margin: 10px;">
+  </a>
+  <a href="https://www.buymeacoffee.com/yourusername" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px; margin: 10px;">
+  </a>
+</div>
+
+<!-- ⚫ Footer -->
+<footer style="text-align: center; padding: 20px; font-size: 14px; background-color: #f1f1f1; color: #555;">
+  © 2025 EnglishGo. All rights reserved.
+</footer>
+
+</body>
+</html>

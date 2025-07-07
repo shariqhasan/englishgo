@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Word Bank</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fdfdfd;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background-color: #111;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    header h1 span:first-child {
+      color: red;
+    }
+
+    header h1 span:last-child {
+      color: white;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      color: white;
+      font-size: 16px;
+    }
+
+    .search-box {
+      text-align: center;
+      margin: 30px auto 10px;
+    }
+
+    .search-box input {
+      padding: 10px;
+      font-size: 16px;
+      width: 250px;
+    }
+
+    .search-box button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-left: 10px;
+      background-color: red;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    .result {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .result h2 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: red;
+    }
+
+    .result h3 {
+      color: #444;
+      text-transform: capitalize;
+      margin-top: 15px;
+    }
+
+    .result ul {
+      padding-left: 20px;
+      line-height: 1.6;
+    }
+
+    .result li {
+      margin-bottom: 10px;
+    }
+
+    .result i {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><span>English</span><span>Go</span></h1>
+    <a class="back-btn" href="index.html">← Back to Home</a>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="wordInput" placeholder="Search a word (e.g. courage)">
+    <button onclick="lookupWord()">Search</button>
+  </div>
+
+  <p id="loading">Loading word data...</p>
+  <div class="result" id="wordResult"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    let word = params.get('word');
+    const wordInput = document.getElementById('wordInput');
+    const loading = document.getElementById('loading');
+    const wordResult = document.getElementById('wordResult');
+
+    if (word) {
+      wordInput.value = word;
+      fetchDefinition(word);
+    } else {
+      loading.style.display = 'none';
+      wordResult.innerHTML = `
+        <h2>No word provided.</h2>
+        <p>Please search from the bar above.</p>
+        <p>No word provided in the URL. Use the search box above to look up a word.</p>
+      `;
+    }
+
+    function lookupWord() {
+      const newWord = wordInput.value.trim();
+      if (newWord) {
+        fetchDefinition(newWord);
+      }
+    }
+
+    function fetchDefinition(w) {
+      loading.innerText = `Searching for "${w}"...`;
+      wordResult.innerHTML = '';
+      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const meanings = data[0].meanings.map(m => `
+              <h3>${m.partOfSpeech}</h3>
+              <ul>
+                ${m.definitions.map(d => `
+                  <li>
+                    ${d.definition}
+                    ${d.example ? `<br><i>Example: ${d.example}</i>` : ''}
+                  </li>`).join('')}
+              </ul>
+            `).join('');
+            wordResult.innerHTML = `<h2>${data[0].word}</h2>${meanings}`;
+          } else {
+            wordResult.innerHTML = `<p>No definitions found for "<strong>${w}</strong>".</p>`;
+          }
+          loading.style.display = 'none';
+        })
+        .catch(() => {
+          wordResult.innerHTML = `<p>Error fetching definition for "<strong>${w}</strong>".</p>`;
+          loading.style.display = 'none';
+        });
+    }
+
+    wordInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') lookupWord();
+    });
+  </script>
+
+</body>
+</html>

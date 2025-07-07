@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcards with Voice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #1e1e1e;
+      color: white;
+    }
+    header {
+      background: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+    }
+    header h1 {
+      color: red;
+      margin: 0;
+    }
+    header a {
+      color: white;
+      text-decoration: none;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px;
+      background: #222;
+    }
+    .toolbar button {
+      background: #005eff;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
+    .card {
+      background: #2e2e2e;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .card p {
+      font-size: 14px;
+      color: #ccc;
+    }
+    .card button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .add-form {
+      text-align: center;
+      margin: 15px;
+    }
+    .add-form input {
+      padding: 8px;
+      margin: 5px;
+      width: 120px;
+    }
+    .add-form button {
+      padding: 8px 12px;
+      background: green;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>EnglishGo</h1>
+    <a href="index.html">← Back</a>
+  </header>
+
+  <div class="toolbar">
+    <button onclick="filterCards('all')">ALL</button>
+    <button onclick="filterCards('not')">NOT MEMORIZED</button>
+    <button onclick="filterCards('yes')">MEMORIZED</button>
+  </div>
+
+  <div class="grid" id="cardContainer"></div>
+
+  <div class="add-form">
+    <input type="text" id="newWord" placeholder="Word">
+    <input type="text" id="newMeaning" placeholder="Meaning">
+    <button onclick="addCard()">+ Add Card</button>
+  </div>
+
+  <script>
+    let cards = JSON.parse(localStorage.getItem('cards')) || [
+      { word: "Hello", meaning: "a greeting", memorized: false },
+      { word: "Power", meaning: "ability to act", memorized: false }
+    ];
+
+    function saveCards() {
+      localStorage.setItem('cards', JSON.stringify(cards));
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'en-US';
+      speechSynthesis.speak(utter);
+    }
+
+    function toggleMemorized(index) {
+      cards[index].memorized = !cards[index].memorized;
+      saveCards();
+      renderCards();
+    }
+
+    function deleteCard(index) {
+      cards.splice(index, 1);
+      saveCards();
+      renderCards();
+    }
+
+    function addCard() {
+      const word = document.getElementById('newWord').value.trim();
+      const meaning = document.getElementById('newMeaning').value.trim();
+      if (!word || !meaning) return;
+      cards.push({ word, meaning, memorized: false });
+      saveCards();
+      renderCards();
+      document.getElementById('newWord').value = '';
+      document.getElementById('newMeaning').value = '';
+    }
+
+    let currentFilter = 'all';
+
+    function filterCards(type) {
+      currentFilter = type;
+      renderCards();
+    }
+
+    function renderCards() {
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = '';
+
+      cards.forEach((card, index) => {
+        if (currentFilter === 'not' && card.memorized) return;
+        if (currentFilter === 'yes' && !card.memorized) return;
+
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <h3>${card.word}</h3>
+          <p>${card.meaning}</p>
+          <button onclick="speak('${card.word}')">🔊</button>
+          <button onclick="toggleMemorized(${index})">${card.memorized ? '❤️' : '🤍'}</button>
+          <button onclick="deleteCard(${index})">⋮</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    renderCards();
+  </script>
+</body>
+</html>
